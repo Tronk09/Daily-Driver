@@ -1,0 +1,978 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Console</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#0a0612">
+<link rel="apple-touch-icon" href="./icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;600;700;800&family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root{
+    --bg:#0a0612;
+    --panel:#140c22;
+    --panel-2:#1c1132;
+    --border:#2c1b47;
+    --border-soft:#21132f;
+    --purple:#b14bff;
+    --purple-dim:#6a2fa0;
+    --purple-glow:rgba(177,75,255,0.45);
+    --cyan:#00e5ff;
+    --cyan-glow:rgba(0,229,255,0.4);
+    --pink:#ff2e88;
+    --text:#f1e9ff;
+    --muted:#9c86c4;
+    --muted-2:#5b4a7d;
+    --font-display:'Orbitron', sans-serif;
+    --font-body:'Chakra Petch', sans-serif;
+    --font-mono:'IBM Plex Mono', monospace;
+    --radius:10px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      repeating-linear-gradient(0deg, rgba(177,75,255,0.02) 0px, rgba(177,75,255,0.02) 1px, transparent 1px, transparent 3px),
+      radial-gradient(circle at 15% 0%, rgba(177,75,255,0.10), transparent 45%),
+      radial-gradient(circle at 85% 10%, rgba(0,229,255,0.07), transparent 40%),
+      var(--bg);
+    color:var(--text);
+    font-family:var(--font-body);
+    min-height:100vh;
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{display:flex;min-height:100vh;}
+
+  /* ---------- Sidebar ---------- */
+  #sidebar{
+    width:196px;flex-shrink:0;
+    background:var(--panel);
+    border-right:1px solid var(--border);
+    display:flex;flex-direction:column;
+    padding:22px 12px;
+  }
+  .brand{
+    font-family:var(--font-display);font-weight:700;font-size:15px;letter-spacing:0.16em;
+    padding:0 8px 22px 8px;display:flex;align-items:center;gap:8px;color:var(--text);
+    text-shadow:0 0 12px var(--purple-glow);
+  }
+  .brand .dot{width:8px;height:8px;border-radius:50%;background:var(--cyan);box-shadow:0 0 10px var(--cyan);}
+  nav.navlist{display:flex;flex-direction:column;gap:2px;}
+  .navitem{
+    display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:8px;
+    color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;border:1px solid transparent;
+    user-select:none;transition:background .12s ease,color .12s ease,border-color .12s ease;
+  }
+  .navitem svg{width:15px;height:15px;flex-shrink:0;}
+  .navitem:hover{background:var(--panel-2);color:var(--text);}
+  .navitem.active{
+    background:linear-gradient(90deg, rgba(177,75,255,0.14), rgba(177,75,255,0.03));
+    border-color:rgba(177,75,255,0.4);color:var(--purple);
+    box-shadow:inset 0 0 12px rgba(177,75,255,0.15);
+  }
+  .navitem.active svg{filter:drop-shadow(0 0 4px var(--purple-glow));}
+  #install-btn{
+    margin-top:10px;display:none;font-family:var(--font-body);font-weight:700;font-size:12px;
+    padding:9px 10px;border-radius:8px;border:1px solid var(--cyan);color:var(--cyan);background:transparent;cursor:pointer;
+  }
+  #install-btn:hover{background:rgba(0,229,255,0.08);}
+  .sidebar-footer{margin-top:auto;padding:12px 10px 0 10px;font-family:var(--font-mono);font-size:10px;color:var(--muted-2);letter-spacing:0.04em;}
+
+  /* ---------- Main ---------- */
+  #main{flex:1;display:flex;flex-direction:column;min-width:0;}
+
+  /* ---------- Vitals ---------- */
+  #vitals{position:relative;border-bottom:1px solid var(--border);background:linear-gradient(180deg, rgba(177,75,255,0.07), rgba(177,75,255,0) 65%), var(--panel);overflow:hidden;}
+  #pulse-svg{position:absolute;top:0;left:0;width:100%;height:100%;opacity:0.55;pointer-events:none;}
+  #pulse-path{fill:none;stroke:var(--purple);stroke-width:1.3;stroke-dasharray:1400;animation:pulse-run 5.5s linear infinite;filter:drop-shadow(0 0 3px var(--purple-glow));}
+  @keyframes pulse-run{0%{stroke-dashoffset:1400;}100%{stroke-dashoffset:0;}}
+  @media(prefers-reduced-motion:reduce){#pulse-path{animation:none;stroke-dashoffset:0;}}
+  .vitals-row{position:relative;display:flex;align-items:stretch;padding:16px 22px;overflow-x:auto;}
+  .vital{padding:0 20px;border-right:1px solid var(--border-soft);display:flex;flex-direction:column;justify-content:center;gap:4px;min-width:88px;}
+  .vital:first-child{padding-left:0;}
+  .vital:last-child{border-right:none;}
+  .vital-label{font-family:var(--font-mono);font-size:9.5px;letter-spacing:0.12em;color:var(--muted);text-transform:uppercase;}
+  .vital-value{font-family:var(--font-mono);font-size:20px;font-weight:600;color:var(--text);line-height:1.1;display:flex;align-items:baseline;gap:5px;}
+  .vital-value .unit{font-size:11px;color:var(--muted);font-weight:400;}
+  .accent-purple{color:var(--purple);text-shadow:0 0 10px var(--purple-glow);}
+  .accent-cyan{color:var(--cyan);text-shadow:0 0 10px var(--cyan-glow);}
+  .accent-pink{color:var(--pink);}
+  .xp-bar-wrap{width:118px;}
+  .xp-bar-track{width:100%;height:6px;border-radius:3px;background:var(--panel-2);border:1px solid var(--border);overflow:hidden;margin-top:4px;}
+  .xp-bar-fill{height:100%;background:linear-gradient(90deg, var(--purple-dim), var(--purple));box-shadow:0 0 8px var(--purple-glow);border-radius:3px;transition:width .4s ease;}
+
+  /* ---------- Content ---------- */
+  #content{flex:1;padding:26px 30px 60px 30px;overflow-y:auto;}
+  .view{display:none;}
+  .view.active{display:block;animation:fade-in .18s ease;}
+  @keyframes fade-in{from{opacity:0;transform:translateY(3px);}to{opacity:1;transform:none;}}
+  .view-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px;}
+  .view-title{font-family:var(--font-display);font-size:20px;font-weight:700;letter-spacing:0.03em;text-shadow:0 0 14px var(--purple-glow);}
+  .view-sub{font-family:var(--font-mono);font-size:11px;color:var(--muted);}
+
+  .grid{display:grid;gap:16px;}
+  .grid-2{grid-template-columns:1fr 1fr;}
+  .grid-3{grid-template-columns:2fr 1fr;}
+  @media(max-width:820px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:18px;}
+  .card-title{font-family:var(--font-display);font-size:12.5px;font-weight:700;letter-spacing:0.03em;margin:0 0 14px 0;display:flex;align-items:center;justify-content:space-between;color:var(--text);}
+  .card-title .tag{font-family:var(--font-mono);font-size:10px;color:var(--muted);font-weight:400;letter-spacing:0.04em;}
+
+  .field-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+  input[type=text],input[type=number],input[type=date],select,textarea{
+    background:var(--panel-2);border:1px solid var(--border);color:var(--text);border-radius:7px;
+    padding:9px 10px;font-family:var(--font-body);font-size:13px;outline:none;
+  }
+  input:focus,select:focus,textarea:focus{border-color:var(--purple);box-shadow:0 0 0 2px rgba(177,75,255,0.15);}
+  input::placeholder,textarea::placeholder{color:var(--muted-2);}
+  textarea{resize:vertical;min-height:44px;width:100%;font-family:var(--font-body);}
+  button{font-family:var(--font-body);font-size:13px;font-weight:700;border-radius:7px;border:1px solid var(--border);background:var(--panel-2);color:var(--text);padding:9px 14px;cursor:pointer;transition:all .12s ease;}
+  button:hover{border-color:var(--purple);}
+  button.primary{background:linear-gradient(135deg, var(--purple), #8a2be2);color:#fff;border-color:var(--purple);box-shadow:0 0 14px rgba(177,75,255,0.3);}
+  button.primary:hover{box-shadow:0 0 20px rgba(177,75,255,0.5);}
+  button.ghost{background:transparent;}
+  button:focus-visible,.navitem:focus-visible,input:focus-visible{outline:2px solid var(--cyan);outline-offset:1px;}
+  select{-webkit-appearance:none;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%239c86c4'/></svg>");background-repeat:no-repeat;background-position:right 10px center;padding-right:26px;}
+
+  .list{display:flex;flex-direction:column;gap:8px;}
+  .row-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;}
+  .row-item.done{opacity:0.42;}
+  .row-item.done .row-title{text-decoration:line-through;}
+  .row-item.urgent{border-color:rgba(255,46,136,0.5);box-shadow:0 0 10px rgba(255,46,136,0.12);}
+  .checkbox{width:17px;height:17px;border-radius:5px;border:1.5px solid var(--muted);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;}
+  .checkbox.checked{background:var(--purple);border-color:var(--purple);box-shadow:0 0 8px var(--purple-glow);}
+  .checkbox.checked::after{content:'✓';font-size:11px;color:#fff;font-weight:700;}
+  .row-title{font-size:13.5px;font-weight:500;flex:1;min-width:0;}
+  .row-meta{font-family:var(--font-mono);font-size:10.5px;color:var(--muted);white-space:nowrap;}
+  .pill{font-family:var(--font-mono);font-size:10px;letter-spacing:0.03em;padding:2px 7px;border-radius:20px;border:1px solid var(--border);color:var(--muted);white-space:nowrap;}
+  .pill.urgent{color:var(--pink);border-color:rgba(255,46,136,0.4);}
+  .icon-btn{background:transparent;border:none;color:var(--muted-2);cursor:pointer;padding:4px;font-size:14px;line-height:1;}
+  .icon-btn:hover{color:var(--pink);}
+  .empty{color:var(--muted-2);font-size:12.5px;font-family:var(--font-mono);padding:24px 10px;text-align:center;border:1px dashed var(--border);border-radius:8px;}
+
+  .heatmap{display:flex;gap:3px;overflow-x:auto;padding-bottom:4px;}
+  .heat-col{display:flex;flex-direction:column;gap:3px;}
+  .heat-cell{width:11px;height:11px;border-radius:3px;background:var(--panel-2);border:1px solid var(--border-soft);}
+  .heat-cell[data-level="1"]{background:rgba(177,75,255,0.25);}
+  .heat-cell[data-level="2"]{background:rgba(177,75,255,0.5);}
+  .heat-cell[data-level="3"]{background:rgba(177,75,255,0.8);box-shadow:0 0 4px var(--purple-glow);}
+  .heat-cell[data-level="4"]{background:var(--cyan);box-shadow:0 0 6px var(--cyan-glow);}
+
+  .habit-card{padding:12px 14px;}
+  .habit-top{display:flex;align-items:center;gap:10px;}
+  .habit-name{font-weight:600;font-size:13.5px;flex:1;}
+  .streak-badge{font-family:var(--font-mono);font-size:11px;color:var(--pink);display:flex;align-items:center;gap:3px;}
+  .week-strip{display:flex;gap:4px;margin-top:10px;}
+  .week-cell{flex:1;height:20px;border-radius:5px;background:var(--panel-2);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-family:var(--font-mono);font-size:9px;color:var(--muted-2);cursor:pointer;}
+  .week-cell.filled{background:var(--purple);border-color:var(--purple);color:#fff;box-shadow:0 0 6px var(--purple-glow);}
+  .week-cell.today{border-color:var(--cyan);}
+
+  .stat-num{font-family:var(--font-mono);font-size:26px;font-weight:600;}
+  .stat-label{font-family:var(--font-mono);font-size:10px;color:var(--muted);letter-spacing:0.06em;text-transform:uppercase;}
+  .chart-wrap{position:relative;height:180px;}
+  .subtitle-note{font-size:11.5px;color:var(--muted-2);margin-top:8px;font-family:var(--font-mono);}
+
+  /* Timer */
+  .timer-display{font-family:var(--font-mono);font-size:52px;font-weight:600;text-align:center;color:var(--purple);text-shadow:0 0 24px var(--purple-glow);letter-spacing:0.02em;margin:10px 0 16px 0;}
+  .timer-cats{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;}
+  .cat-btn{flex:1;min-width:80px;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--panel-2);color:var(--muted);cursor:pointer;font-weight:700;font-size:12.5px;text-align:center;}
+  .cat-btn.selected{border-color:var(--cyan);color:var(--cyan);box-shadow:0 0 10px var(--cyan-glow);}
+  .timer-controls{display:flex;gap:10px;justify-content:center;}
+  .timer-controls button{min-width:110px;}
+  .xp-confirm{display:flex;gap:8px;align-items:center;justify-content:center;margin-top:12px;padding:10px;border:1px dashed var(--pink);border-radius:8px;font-size:12.5px;color:var(--muted);}
+
+  /* journal */
+  .journal-entry{padding:12px 14px;background:var(--panel-2);border:1px solid var(--border);border-radius:8px;cursor:pointer;}
+  .journal-date{font-family:var(--font-mono);font-size:10.5px;color:var(--cyan);margin-bottom:4px;}
+  .journal-preview{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+
+  ::-webkit-scrollbar{height:8px;width:8px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+
+  @media(max-width:760px){
+    #app{flex-direction:column;}
+    #sidebar{width:100%;flex-direction:row;align-items:center;padding:10px 12px;overflow-x:auto;}
+    .brand{padding:0 12px 0 0;}
+    nav.navlist{flex-direction:row;margin-top:0;}
+    #install-btn{display:none !important;}
+    .sidebar-footer{display:none;}
+    #content{padding:18px 16px 50px 16px;}
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="sidebar">
+    <div class="brand"><span class="dot"></span>CONSOLE</div>
+    <nav class="navlist" id="navlist">
+      <div class="navitem" data-view="overview"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12l4-8 4 14 3-10 2 6 3-4h4"/></svg>Dashboard</div>
+      <div class="navitem" data-view="week"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Week Ahead</div>
+      <div class="navitem" data-view="draft"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l2.9 6.6L22 9.3l-5 4.9 1.2 7-6.2-3.4-6.2 3.4L7 14.2 2 9.3l7.1-.7z"/></svg>Draft</div>
+      <div class="navitem" data-view="habits"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6L9 17l-5-5"/></svg>Habits</div>
+      <div class="navitem" data-view="timer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l3 2M9 2h6"/></svg>Focus Timer</div>
+      <div class="navitem" data-view="health"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.8 4.6a5.5 5.5 0 00-7.8 0L12 5.6l-1-1a5.5 5.5 0 00-7.8 7.8l1 1L12 21l7.8-7.6 1-1a5.5 5.5 0 000-7.8z"/></svg>Health</div>
+      <div class="navitem" data-view="journal"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 016.5 17H20V4H6.5A2.5 2.5 0 004 6.5v13z"/></svg>Journal</div>
+    </nav>
+    <button id="install-btn">↓ Install app</button>
+    <div class="sidebar-footer" id="datefoot">—</div>
+  </div>
+
+  <div id="main">
+    <div id="vitals">
+      <svg id="pulse-svg" viewBox="0 0 1000 90" preserveAspectRatio="none">
+        <path id="pulse-path" d="M0,45 L120,45 L145,45 L160,10 L180,80 L200,45 L230,45 L860,45 L880,15 L900,75 L920,45 L1000,45"/>
+      </svg>
+      <div class="vitals-row">
+        <div class="vital"><div class="vital-label">Level</div><div class="vital-value accent-purple" id="v-level">1</div></div>
+        <div class="vital xp-bar-wrap"><div class="vital-label" id="v-xp-label">0 / 150 XP</div><div class="xp-bar-track"><div class="xp-bar-fill" id="v-xp-fill" style="width:0%"></div></div></div>
+        <div class="vital"><div class="vital-label">Streak</div><div class="vital-value accent-pink" id="v-streak">0<span class="unit">d</span></div></div>
+        <div class="vital"><div class="vital-label">Draft Today</div><div class="vital-value" id="v-today">0<span class="unit">/0</span></div></div>
+        <div class="vital"><div class="vital-label">Weight</div><div class="vital-value" id="v-weight">—</div></div>
+        <div class="vital"><div class="vital-label">Focus (7d)</div><div class="vital-value accent-cyan" id="v-focus">0<span class="unit">min</span></div></div>
+      </div>
+    </div>
+
+    <div id="content">
+
+      <!-- DASHBOARD -->
+      <div class="view" id="view-overview">
+        <div class="view-header"><div><div class="view-title">Dashboard</div><div class="view-sub" id="ov-date"></div></div></div>
+        <div class="grid grid-3" style="margin-bottom:16px;">
+          <div class="card">
+            <div class="card-title">Consistency <span class="tag">last 12 weeks</span></div>
+            <div class="heatmap" id="heatmap"></div>
+            <div class="subtitle-note">Each column = one week. Brighter = more logged that day.</div>
+          </div>
+          <div class="card">
+            <div class="card-title">Today's Draft</div>
+            <div class="list" id="ov-draft"></div>
+          </div>
+        </div>
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-title">Deadlines <span class="tag">Week Ahead</span></div>
+            <div class="list" id="ov-deadlines"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Habits — check in</div>
+            <div class="list" id="ov-habits"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- WEEK AHEAD -->
+      <div class="view" id="view-week">
+        <div class="view-header"><div><div class="view-title">Week Ahead</div><div class="view-sub">Soft planning — what's coming, what you're aiming for</div></div></div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title">Add item</div>
+          <div class="field-row">
+            <input type="text" id="w-text" placeholder="Deadline, goal, or note for the week" style="flex:1;min-width:200px;">
+            <input type="date" id="w-date">
+          </div>
+          <div class="subtitle-note" style="margin:0 0 10px 0;">Leave date blank for a general goal. Add a date if it's a real deadline.</div>
+          <button class="primary" id="w-add">Add to Week Ahead</button>
+        </div>
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-title">Deadlines <span class="tag" id="w-deadline-count">0</span></div>
+            <div class="list" id="w-deadlines"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">This week's goals <span class="tag" id="w-goal-count">0</span></div>
+            <div class="list" id="w-goals"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- DRAFT -->
+      <div class="view" id="view-draft">
+        <div class="view-header"><div><div class="view-title">Draft</div><div class="view-sub">Your loadout for the day — minimum 3 goals, written the night before</div></div></div>
+        <div class="grid grid-2" style="margin-bottom:16px;">
+          <div class="card">
+            <div class="card-title">Today <span class="tag" id="draft-today-date"></span></div>
+            <div class="list" id="draft-today"></div>
+          </div>
+          <div class="card">
+            <div class="card-title">Write tomorrow's Draft <span class="tag" id="draft-tomorrow-date"></span></div>
+            <div class="field-row"><input type="text" id="draft-new-goal" placeholder="A goal for tomorrow" style="flex:1;"></div>
+            <button id="draft-add-goal" style="width:100%;margin-bottom:10px;">+ Add goal</button>
+            <div class="list" id="draft-tomorrow-list"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Reminders</div>
+          <div class="subtitle-note" style="margin:0 0 10px 0;">Once enabled, Console checks every 5 min from 11pm onward and nudges you if tomorrow's Draft has fewer than 3 goals — stops automatically once you've written them. This only fires reliably while the app is open or recently backgrounded; for a guaranteed wake-up on a sleeping phone, pair it with a native phone alarm until the push-server upgrade is added.</div>
+          <div class="field-row">
+            <button id="notif-enable">Enable notifications</button>
+            <button id="notif-test">Send test notification</button>
+          </div>
+          <div class="subtitle-note" id="notif-status">Notifications: not requested yet</div>
+        </div>
+      </div>
+
+      <!-- HABITS -->
+      <div class="view" id="view-habits">
+        <div class="view-header"><div><div class="view-title">Habits</div><div class="view-sub">Daily check-ins build streaks and XP</div></div></div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title">New habit</div>
+          <div class="field-row">
+            <input type="text" id="h-name" placeholder="e.g. Gym session, 30 min revision" style="flex:1;min-width:180px;">
+            <select id="h-xp"><option value="10">Low effort · 10xp</option><option value="20" selected>Medium effort · 20xp</option><option value="35">High effort · 35xp</option></select>
+          </div>
+          <button class="primary" id="h-add">Add habit</button>
+        </div>
+        <div class="grid grid-2" id="habits-grid"></div>
+      </div>
+
+      <!-- FOCUS TIMER -->
+      <div class="view" id="view-timer">
+        <div class="view-header"><div><div class="view-title">Focus Timer</div><div class="view-sub">Freeform stopwatch, tag it and go</div></div></div>
+        <div class="grid grid-2" style="margin-bottom:16px;">
+          <div class="card">
+            <div class="card-title">Session</div>
+            <div class="timer-cats" id="timer-cats">
+              <div class="cat-btn selected" data-cat="Study">Study</div>
+              <div class="cat-btn" data-cat="Gaming">Gaming</div>
+              <div class="cat-btn" data-cat="Work">Work</div>
+              <div class="cat-btn" data-cat="Gym">Gym</div>
+            </div>
+            <div class="timer-display" id="timer-display">00:00</div>
+            <div class="timer-controls">
+              <button class="primary" id="timer-toggle">Start</button>
+              <button id="timer-reset">Reset</button>
+            </div>
+            <div id="gaming-confirm" style="display:none;" class="xp-confirm">
+              <span>Deliberate practice?</span>
+              <button id="xp-keep">Keep XP</button>
+              <button id="xp-cancel">Cancel XP</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Today <span class="tag" id="timer-today-total">0 min</span></div>
+            <div class="list" id="timer-today-list"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">This week by category</div>
+          <div class="chart-wrap"><canvas id="chart-timer"></canvas></div>
+        </div>
+      </div>
+
+      <!-- HEALTH -->
+      <div class="view" id="view-health">
+        <div class="view-header"><div><div class="view-title">Health</div><div class="view-sub">Weight, training, and intake</div></div></div>
+        <div class="grid grid-2" style="margin-bottom:16px;">
+          <div class="card">
+            <div class="card-title">Log weight</div>
+            <div class="field-row"><input type="date" id="w-date-log"><input type="number" id="w-value" placeholder="kg" step="0.1" style="width:90px;"></div>
+            <button class="primary" id="w-add-log">Save entry</button>
+          </div>
+          <div class="card">
+            <div class="card-title">Log gym session</div>
+            <div class="field-row">
+              <input type="date" id="g-date">
+              <select id="g-type"><option>Strength</option><option>Cardio</option><option>Table tennis</option><option>Other</option></select>
+              <input type="number" id="g-duration" placeholder="min" style="width:80px;">
+            </div>
+            <button class="primary" id="g-add">Save session</button>
+          </div>
+        </div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title">Daily calories <span class="tag" id="cal-today">—</span></div>
+          <div class="field-row"><input type="date" id="cal-date"><input type="number" id="cal-value" placeholder="kcal" style="width:110px;"></div>
+          <button class="primary" id="cal-add">Save total</button>
+        </div>
+        <div class="grid grid-2">
+          <div class="card"><div class="card-title">Weight trend</div><div class="chart-wrap"><canvas id="chart-weight"></canvas></div></div>
+          <div class="card"><div class="card-title">Calories <span class="tag">last 14 days</span></div><div class="chart-wrap"><canvas id="chart-cal"></canvas></div></div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">Gym sessions <span class="tag">last 30 days</span></div>
+          <div class="list" id="gym-list"></div>
+        </div>
+      </div>
+
+      <!-- JOURNAL -->
+      <div class="view" id="view-journal">
+        <div class="view-header"><div><div class="view-title">Journal</div><div class="view-sub">Freeform. No structure required.</div></div></div>
+        <div class="card" style="margin-bottom:16px;">
+          <div class="card-title">Entry <span class="tag" id="journal-date-tag"></span></div>
+          <div class="field-row"><input type="date" id="journal-date"></div>
+          <div class="field-row"><textarea id="journal-text" placeholder="Write whatever's on your mind..." style="min-height:160px;"></textarea></div>
+          <button class="primary" id="journal-save">Save entry</button>
+        </div>
+        <div class="card">
+          <div class="card-title">Past entries</div>
+          <div class="list" id="journal-list"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const STORAGE_KEY = "console-state-v2";
+  const todayStr = () => new Date().toISOString().slice(0,10);
+  const tomorrowStr = () => { const d = new Date(); d.setDate(d.getDate()+1); return d.toISOString().slice(0,10); };
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+
+  let state = {
+    xp: 0,
+    habits: [],
+    weekItems: [],          // {id,text,date,done,createdAt}
+    draft: {},               // { [date]: {goals:[{id,text,done}]} }
+    focusSessions: [],       // {id,date,category,minutes,cancelled}
+    weightLog: [],
+    gymLog: [],
+    calorieLog: [],          // {id,date,calories}
+    journal: []              // {id,date,text}
+  };
+
+  let saveTimer=null;
+  function scheduleSave(){ clearTimeout(saveTimer); saveTimer = setTimeout(save, 400); }
+  async function save(){
+    try{ await window.storage.set(STORAGE_KEY, JSON.stringify(state), false); }
+    catch(e){ console.error("Save failed", e); }
+  }
+  async function load(){
+    try{
+      const res = await window.storage.get(STORAGE_KEY, false);
+      if(res && res.value) state = Object.assign(state, JSON.parse(res.value));
+    }catch(e){ /* fresh install */ }
+    renderAll();
+  }
+
+  // ---------- XP / Level ----------
+  function xpForLevel(level){ return 50*level*(level+1); }
+  function levelFromXp(xp){ let l=1; while(xp>=xpForLevel(l)) l++; return l; }
+  function addXp(amount){ state.xp = Math.max(0, state.xp+amount); scheduleSave(); }
+  function renderVitalsXp(){
+    const level = levelFromXp(state.xp);
+    const prev = xpForLevel(level-1), next = xpForLevel(level);
+    const into = state.xp-prev, span = next-prev;
+    document.getElementById("v-level").textContent = level;
+    document.getElementById("v-xp-label").textContent = into+" / "+span+" XP";
+    document.getElementById("v-xp-fill").style.width = Math.max(0,Math.min(100,(into/span)*100))+"%";
+  }
+
+  // ---------- Activity / streak ----------
+  function activityDatesSet(){
+    const set = new Set();
+    state.habits.forEach(h => (h.history||[]).forEach(d=>set.add(d)));
+    state.focusSessions.forEach(s => { if(!s.cancelled) set.add(s.date); });
+    state.weightLog.forEach(w=>set.add(w.date));
+    state.gymLog.forEach(g=>set.add(g.date));
+    state.calorieLog.forEach(c=>set.add(c.date));
+    state.journal.forEach(j=>set.add(j.date));
+    Object.entries(state.draft).forEach(([date,d])=>{ if((d.goals||[]).some(g=>g.done)) set.add(date); });
+    return set;
+  }
+  function currentStreak(){
+    const set = activityDatesSet();
+    let streak=0, cursor=new Date();
+    if(!set.has(todayStr())) cursor.setDate(cursor.getDate()-1);
+    while(true){
+      const ds = cursor.toISOString().slice(0,10);
+      if(set.has(ds)){ streak++; cursor.setDate(cursor.getDate()-1); } else break;
+    }
+    return streak;
+  }
+
+  function emptyState(msg){ const d=document.createElement("div"); d.className="empty"; d.textContent=msg; return d; }
+
+  // ---------- Vitals render ----------
+  function renderVitals(){
+    renderVitalsXp();
+    document.getElementById("v-streak").innerHTML = currentStreak()+'<span class="unit">d</span>';
+    const todayGoals = (state.draft[todayStr()]||{goals:[]}).goals;
+    const doneCount = todayGoals.filter(g=>g.done).length;
+    document.getElementById("v-today").innerHTML = doneCount+'<span class="unit">/'+todayGoals.length+'</span>';
+    const w = [...state.weightLog].sort((a,b)=>a.date.localeCompare(b.date));
+    if(w.length){
+      const last = w[w.length-1];
+      let trend = "";
+      if(w.length>1){
+        const diff = last.value - w[w.length-2].value;
+        const cls = diff>0?"accent-pink":diff<0?"accent-cyan":"";
+        trend = '<span class="unit '+cls+'">'+(diff>0?"+":"")+diff.toFixed(1)+'</span>';
+      }
+      document.getElementById("v-weight").innerHTML = last.value+'<span class="unit">kg</span>'+trend;
+    } else document.getElementById("v-weight").innerHTML = "—";
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-6);
+    const cs = cutoff.toISOString().slice(0,10);
+    const focusMin = state.focusSessions.filter(s=>!s.cancelled && s.date>=cs).reduce((a,s)=>a+s.minutes,0);
+    document.getElementById("v-focus").innerHTML = focusMin+'<span class="unit">min</span>';
+  }
+
+  // ---------- Heatmap ----------
+  function renderHeatmap(){
+    const el = document.getElementById("heatmap");
+    el.innerHTML = "";
+    const counts = {};
+    const bump = d => counts[d] = (counts[d]||0)+1;
+    state.habits.forEach(h=>(h.history||[]).forEach(bump));
+    state.focusSessions.forEach(s=>{ if(!s.cancelled) bump(s.date); });
+    state.weightLog.forEach(w=>bump(w.date));
+    state.gymLog.forEach(g=>bump(g.date));
+    state.calorieLog.forEach(c=>bump(c.date));
+    state.journal.forEach(j=>bump(j.date));
+    Object.entries(state.draft).forEach(([date,d])=> (d.goals||[]).forEach(g=>{ if(g.done) bump(date); }));
+
+    const days=84;
+    const start = new Date(); start.setDate(start.getDate()-(days-1)); start.setDate(start.getDate()-start.getDay());
+    const totalCols = Math.ceil((days+start.getDay())/7)+1;
+    for(let c=0;c<totalCols;c++){
+      const col = document.createElement("div"); col.className="heat-col";
+      for(let r=0;r<7;r++){
+        const d = new Date(start); d.setDate(d.getDate()+c*7+r);
+        const ds = d.toISOString().slice(0,10);
+        const cell = document.createElement("div"); cell.className="heat-cell";
+        if(d<=new Date()){
+          const cnt = counts[ds]||0;
+          const level = cnt===0?0:cnt===1?1:cnt<=2?2:cnt<=4?3:4;
+          cell.setAttribute("data-level", level);
+          cell.title = ds+" · "+cnt+" logged";
+        } else cell.style.visibility="hidden";
+        col.appendChild(cell);
+      }
+      el.appendChild(col);
+    }
+  }
+
+  // ---------- Week Ahead ----------
+  function addWeekItem(text, date){
+    if(!text || !text.trim()) return;
+    state.weekItems.push({id:uid(), text:text.trim(), date: date||null, done:false, createdAt:new Date().toISOString()});
+    scheduleSave(); renderAll();
+  }
+  function toggleWeekItem(id){
+    const it = state.weekItems.find(x=>x.id===id); if(!it) return;
+    it.done = !it.done; scheduleSave(); renderAll();
+  }
+  function deleteWeekItem(id){ state.weekItems = state.weekItems.filter(x=>x.id!==id); scheduleSave(); renderAll(); }
+
+  function weekItemRow(it){
+    const row = document.createElement("div");
+    const daysUntil = it.date ? (new Date(it.date)-new Date(todayStr()))/86400000 : null;
+    const urgent = it.date && !it.done && daysUntil<=3;
+    row.className = "row-item"+(it.done?" done":"")+(urgent?" urgent":"");
+    const cb = document.createElement("div"); cb.className="checkbox"+(it.done?" checked":""); cb.onclick=()=>toggleWeekItem(it.id); row.appendChild(cb);
+    const title = document.createElement("div"); title.className="row-title"; title.textContent=it.text; row.appendChild(title);
+    if(it.date){
+      const p = document.createElement("span"); p.className="pill"+(urgent?" urgent":""); p.textContent = it.date; row.appendChild(p);
+    }
+    const del = document.createElement("button"); del.className="icon-btn"; del.innerHTML="✕"; del.onclick=()=>deleteWeekItem(it.id); row.appendChild(del);
+    return row;
+  }
+
+  function renderWeekView(){
+    const deadlines = state.weekItems.filter(i=>i.date).sort((a,b)=>a.date.localeCompare(b.date));
+    const goals = state.weekItems.filter(i=>!i.date).sort((a,b)=>a.createdAt.localeCompare(b.createdAt));
+    document.getElementById("w-deadline-count").textContent = deadlines.length;
+    document.getElementById("w-goal-count").textContent = goals.length;
+    const dEl = document.getElementById("w-deadlines"); dEl.innerHTML="";
+    if(!deadlines.length) dEl.appendChild(emptyState("No deadlines added."));
+    deadlines.forEach(i=>dEl.appendChild(weekItemRow(i)));
+    const gEl = document.getElementById("w-goals"); gEl.innerHTML="";
+    if(!goals.length) gEl.appendChild(emptyState("No general goals added."));
+    goals.forEach(i=>gEl.appendChild(weekItemRow(i)));
+  }
+
+  // ---------- Draft ----------
+  function ensureDraft(date){ if(!state.draft[date]) state.draft[date] = {goals:[]}; return state.draft[date]; }
+  function addDraftGoal(date, text){
+    if(!text || !text.trim()) return;
+    ensureDraft(date).goals.push({id:uid(), text:text.trim(), done:false});
+    scheduleSave(); renderAll();
+  }
+  function toggleDraftGoal(date, id){
+    const d = state.draft[date]; if(!d) return;
+    const g = d.goals.find(x=>x.id===id); if(!g) return;
+    g.done = !g.done;
+    addXp(g.done?15:-15);
+    scheduleSave(); renderAll();
+  }
+  function deleteDraftGoal(date, id){
+    const d = state.draft[date]; if(!d) return;
+    d.goals = d.goals.filter(x=>x.id!==id);
+    scheduleSave(); renderAll();
+  }
+
+  function renderDraftView(){
+    document.getElementById("draft-today-date").textContent = todayStr();
+    document.getElementById("draft-tomorrow-date").textContent = tomorrowStr();
+    const todayGoals = (state.draft[todayStr()]||{goals:[]}).goals;
+    const tEl = document.getElementById("draft-today"); tEl.innerHTML="";
+    if(!todayGoals.length) tEl.appendChild(emptyState("No goals were written for today."));
+    todayGoals.forEach(g=>{
+      const row = document.createElement("div"); row.className="row-item"+(g.done?" done":"");
+      const cb = document.createElement("div"); cb.className="checkbox"+(g.done?" checked":""); cb.onclick=()=>toggleDraftGoal(todayStr(), g.id); row.appendChild(cb);
+      const title = document.createElement("div"); title.className="row-title"; title.textContent=g.text; row.appendChild(title);
+      tEl.appendChild(row);
+    });
+
+    const tomorrowGoals = (state.draft[tomorrowStr()]||{goals:[]}).goals;
+    const tmEl = document.getElementById("draft-tomorrow-list"); tmEl.innerHTML="";
+    if(!tomorrowGoals.length) tmEl.appendChild(emptyState("Aim for at least 3 goals."));
+    tomorrowGoals.forEach(g=>{
+      const row = document.createElement("div"); row.className="row-item";
+      const title = document.createElement("div"); title.className="row-title"; title.textContent=g.text; row.appendChild(title);
+      const del = document.createElement("button"); del.className="icon-btn"; del.innerHTML="✕"; del.onclick=()=>deleteDraftGoal(tomorrowStr(), g.id); row.appendChild(del);
+      tmEl.appendChild(row);
+    });
+  }
+
+  function renderOverview(){
+    document.getElementById("ov-date").textContent = new Date().toLocaleDateString(undefined,{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+    const todayGoals = (state.draft[todayStr()]||{goals:[]}).goals;
+    const ovDraft = document.getElementById("ov-draft"); ovDraft.innerHTML="";
+    if(!todayGoals.length) ovDraft.appendChild(emptyState("No Draft written for today yet."));
+    todayGoals.forEach(g=>{
+      const row = document.createElement("div"); row.className="row-item"+(g.done?" done":"");
+      const cb = document.createElement("div"); cb.className="checkbox"+(g.done?" checked":""); cb.onclick=()=>toggleDraftGoal(todayStr(), g.id); row.appendChild(cb);
+      const title = document.createElement("div"); title.className="row-title"; title.textContent=g.text; row.appendChild(title);
+      ovDraft.appendChild(row);
+    });
+
+    const deadlines = state.weekItems.filter(i=>i.date && !i.done).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,6);
+    const ovDl = document.getElementById("ov-deadlines"); ovDl.innerHTML="";
+    if(!deadlines.length) ovDl.appendChild(emptyState("No upcoming deadlines."));
+    deadlines.forEach(i=>ovDl.appendChild(weekItemRow(i)));
+
+    const ovHabits = document.getElementById("ov-habits"); ovHabits.innerHTML="";
+    if(!state.habits.length) ovHabits.appendChild(emptyState("No habits yet."));
+    state.habits.forEach(h=>{
+      const checked = (h.history||[]).includes(todayStr());
+      const row = document.createElement("div"); row.className="row-item"+(checked?" done":"");
+      const cb = document.createElement("div"); cb.className="checkbox"+(checked?" checked":""); cb.onclick=()=>toggleHabitToday(h.id); row.appendChild(cb);
+      const title = document.createElement("div"); title.className="row-title"; title.textContent=h.name; row.appendChild(title);
+      const streak = document.createElement("span"); streak.className="row-meta"; streak.textContent=habitStreak(h)+"d"; row.appendChild(streak);
+      ovHabits.appendChild(row);
+    });
+  }
+
+  // ---------- Habits ----------
+  function habitStreak(h){
+    const set = new Set(h.history||[]);
+    let streak=0, cursor=new Date();
+    if(!set.has(todayStr())) cursor.setDate(cursor.getDate()-1);
+    while(true){ const ds=cursor.toISOString().slice(0,10); if(set.has(ds)){streak++;cursor.setDate(cursor.getDate()-1);} else break; }
+    return streak;
+  }
+  function toggleHabitToday(id){
+    const h = state.habits.find(x=>x.id===id); if(!h) return;
+    h.history = h.history||[];
+    const ds = todayStr(); const idx = h.history.indexOf(ds);
+    if(idx>=0) h.history.splice(idx,1);
+    else { h.history.push(ds); addXp(h.xpValue + Math.min(habitStreak(h)*2,30)); }
+    scheduleSave(); renderAll();
+  }
+  function toggleHabitDate(id, ds){
+    const h = state.habits.find(x=>x.id===id); if(!h) return;
+    h.history = h.history||[];
+    const idx = h.history.indexOf(ds);
+    if(idx>=0) h.history.splice(idx,1);
+    else { h.history.push(ds); addXp(ds===todayStr()?h.xpValue:Math.round(h.xpValue*0.5)); }
+    scheduleSave(); renderAll();
+  }
+  function addHabit({name,xpValue}){
+    if(!name||!name.trim()) return;
+    state.habits.push({id:uid(), name:name.trim(), xpValue:Number(xpValue)||15, history:[]});
+    scheduleSave(); renderAll();
+  }
+  function deleteHabit(id){ state.habits = state.habits.filter(h=>h.id!==id); scheduleSave(); renderAll(); }
+
+  function renderHabitsView(){
+    const grid = document.getElementById("habits-grid"); grid.innerHTML="";
+    if(!state.habits.length){ grid.appendChild(emptyState("No habits yet. Add your first one above.")); return; }
+    state.habits.forEach(h=>{
+      const card = document.createElement("div"); card.className="card habit-card";
+      const top = document.createElement("div"); top.className="habit-top";
+      const checked = (h.history||[]).includes(todayStr());
+      const cb = document.createElement("div"); cb.className="checkbox"+(checked?" checked":""); cb.onclick=()=>toggleHabitToday(h.id); top.appendChild(cb);
+      const name = document.createElement("div"); name.className="habit-name"; name.textContent=h.name; top.appendChild(name);
+      const sb = document.createElement("div"); sb.className="streak-badge"; sb.textContent="🔥 "+habitStreak(h); top.appendChild(sb);
+      const del = document.createElement("button"); del.className="icon-btn"; del.innerHTML="✕"; del.onclick=()=>deleteHabit(h.id); top.appendChild(del);
+      card.appendChild(top);
+      const week = document.createElement("div"); week.className="week-strip";
+      const set = new Set(h.history||[]);
+      const labels=["S","M","T","W","T","F","S"];
+      const start = new Date(); start.setDate(start.getDate()-start.getDay());
+      for(let i=0;i<7;i++){
+        const d = new Date(start); d.setDate(d.getDate()+i);
+        const ds = d.toISOString().slice(0,10);
+        const cell = document.createElement("div");
+        cell.className="week-cell"+(set.has(ds)?" filled":"")+(ds===todayStr()?" today":"");
+        cell.textContent=labels[i]; cell.title=ds;
+        if(d<=new Date()) cell.onclick=()=>toggleHabitDate(h.id, ds);
+        else { cell.style.opacity="0.3"; cell.style.cursor="default"; }
+        week.appendChild(cell);
+      }
+      card.appendChild(week);
+      grid.appendChild(card);
+    });
+  }
+
+  // ---------- Focus Timer ----------
+  let timerRunning=false, timerSeconds=0, timerInterval=null, selectedCat="Study", pendingGamingSession=null;
+  function fmtTime(sec){ const m=Math.floor(sec/60).toString().padStart(2,"0"); const s=(sec%60).toString().padStart(2,"0"); return m+":"+s; }
+  document.getElementById("timer-cats").addEventListener("click",(e)=>{
+    const btn = e.target.closest(".cat-btn"); if(!btn||timerRunning) return;
+    document.querySelectorAll(".cat-btn").forEach(b=>b.classList.remove("selected"));
+    btn.classList.add("selected"); selectedCat = btn.dataset.cat;
+  });
+  document.getElementById("timer-toggle").onclick = () => {
+    if(!timerRunning){
+      timerRunning=true;
+      document.getElementById("timer-toggle").textContent="Stop";
+      timerInterval = setInterval(()=>{ timerSeconds++; document.getElementById("timer-display").textContent=fmtTime(timerSeconds); },1000);
+    } else {
+      timerRunning=false; clearInterval(timerInterval);
+      document.getElementById("timer-toggle").textContent="Start";
+      const minutes = Math.max(1, Math.round(timerSeconds/60));
+      const session = {id:uid(), date: todayStr(), category: selectedCat, minutes, cancelled:false};
+      state.focusSessions.push(session);
+      addXp(Math.min(60, Math.max(5, Math.round(minutes/2))));
+      scheduleSave();
+      if(selectedCat==="Gaming"){
+        pendingGamingSession = session.id;
+        document.getElementById("gaming-confirm").style.display="flex";
+      }
+      timerSeconds=0; document.getElementById("timer-display").textContent="00:00";
+      renderAll();
+    }
+  };
+  document.getElementById("timer-reset").onclick = () => {
+    timerRunning=false; clearInterval(timerInterval); timerSeconds=0;
+    document.getElementById("timer-display").textContent="00:00";
+    document.getElementById("timer-toggle").textContent="Start";
+  };
+  document.getElementById("xp-keep").onclick = () => {
+    document.getElementById("gaming-confirm").style.display="none"; pendingGamingSession=null;
+  };
+  document.getElementById("xp-cancel").onclick = () => {
+    const s = state.focusSessions.find(x=>x.id===pendingGamingSession);
+    if(s){ s.cancelled=true; addXp(-Math.min(60,Math.max(5,Math.round(s.minutes/2)))); scheduleSave(); renderAll(); }
+    document.getElementById("gaming-confirm").style.display="none"; pendingGamingSession=null;
+  };
+
+  let timerChart;
+  function renderTimerView(){
+    const today = state.focusSessions.filter(s=>s.date===todayStr() && !s.cancelled);
+    const total = today.reduce((a,s)=>a+s.minutes,0);
+    document.getElementById("timer-today-total").textContent = total+" min";
+    const list = document.getElementById("timer-today-list"); list.innerHTML="";
+    if(!today.length) list.appendChild(emptyState("No sessions logged yet today."));
+    today.slice().reverse().forEach(s=>{
+      const row = document.createElement("div"); row.className="row-item";
+      const title = document.createElement("div"); title.className="row-title"; title.textContent=s.category; row.appendChild(title);
+      const meta = document.createElement("span"); meta.className="row-meta"; meta.textContent=s.minutes+" min"; row.appendChild(meta);
+      list.appendChild(row);
+    });
+
+    const cats = ["Study","Gaming","Work","Gym"];
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-6);
+    const cs = cutoff.toISOString().slice(0,10);
+    const totals = cats.map(c => state.focusSessions.filter(s=>!s.cancelled && s.category===c && s.date>=cs).reduce((a,s)=>a+s.minutes,0));
+    const ctx = document.getElementById("chart-timer");
+    if(timerChart) timerChart.destroy();
+    timerChart = new Chart(ctx, {
+      type:"bar",
+      data:{ labels:cats, datasets:[{ data:totals, backgroundColor:["#00e5ff","#ff2e88","#b14bff","#8a2be2"], borderRadius:4 }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+        scales:{ x:{ticks:{color:"#9c86c4",font:{family:"IBM Plex Mono",size:9}},grid:{display:false}},
+                 y:{ticks:{color:"#9c86c4",font:{family:"IBM Plex Mono",size:9}},grid:{color:"#21132f"}} } }
+    });
+  }
+
+  // ---------- Health ----------
+  let weightChart, calChart;
+  function addWeight({date,value}){ if(!date||!value) return; state.weightLog.push({id:uid(),date,value:Number(value)}); addXp(5); scheduleSave(); renderAll(); }
+  function addGym({date,type,duration}){ if(!date||!duration) return; state.gymLog.push({id:uid(),date,type:type||"Other",duration:Number(duration)}); addXp(15); scheduleSave(); renderAll(); }
+  function addCalories({date,calories}){
+    if(!date||!calories) return;
+    const existing = state.calorieLog.find(c=>c.date===date);
+    if(existing) existing.calories = Number(calories);
+    else { state.calorieLog.push({id:uid(),date,calories:Number(calories)}); addXp(5); }
+    scheduleSave(); renderAll();
+  }
+  function renderHealthView(){
+    const list = document.getElementById("gym-list"); list.innerHTML="";
+    const cutoff = new Date(); cutoff.setDate(cutoff.getDate()-30);
+    const cs = cutoff.toISOString().slice(0,10);
+    const recent = state.gymLog.filter(g=>g.date>=cs).sort((a,b)=>b.date.localeCompare(a.date));
+    if(!recent.length) list.appendChild(emptyState("No sessions logged in the last 30 days."));
+    recent.forEach(g=>{
+      const row = document.createElement("div"); row.className="row-item";
+      const title = document.createElement("div"); title.className="row-title"; title.textContent=g.type; row.appendChild(title);
+      const meta = document.createElement("span"); meta.className="row-meta"; meta.textContent=g.duration+" min · "+g.date; row.appendChild(meta);
+      list.appendChild(row);
+    });
+
+    const todayCal = state.calorieLog.find(c=>c.date===todayStr());
+    document.getElementById("cal-today").textContent = todayCal ? todayCal.calories+" kcal" : "not logged";
+
+    const sortedW = [...state.weightLog].sort((a,b)=>a.date.localeCompare(b.date)).slice(-30);
+    const wctx = document.getElementById("chart-weight");
+    if(weightChart) weightChart.destroy();
+    weightChart = new Chart(wctx,{ type:"line", data:{ labels:sortedW.map(w=>w.date.slice(5)), datasets:[{ data:sortedW.map(w=>w.value), borderColor:"#b14bff", backgroundColor:"rgba(177,75,255,0.12)", fill:true, tension:0.3, pointRadius:2 }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+        scales:{ x:{ticks:{color:"#9c86c4",font:{family:"IBM Plex Mono",size:9}},grid:{color:"#21132f"}}, y:{ticks:{color:"#9c86c4",font:{family:"IBM Plex Mono",size:9}},grid:{color:"#21132f"}} } } });
+
+    const cutoff14 = new Date(); cutoff14.setDate(cutoff14.getDate()-13);
+    const cs14 = cutoff14.toISOString().slice(0,10);
+    const sortedC = [...state.calorieLog].filter(c=>c.date>=cs14).sort((a,b)=>a.date.localeCompare(b.date));
+    const cctx = document.getElementById("chart-cal");
+    if(calChart) calChart.destroy();
+    calChart = new Chart(cctx,{ type:"bar", data:{ labels:sortedC.map(c=>c.date.slice(5)), datasets:[{ data:sortedC.map(c=>c.calories), backgroundColor:"#00e5ff", borderRadius:4 }] },
+      options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+        scales:{ x:{ticks:{color:"#9c86c4",font:{family:"IBM Plex Mono",size:9}},grid:{display:false}}, y:{ticks:{color:"#9c86c4",font:{family:"IBM Plex Mono",size:9}},grid:{color:"#21132f"}} } } });
+  }
+
+  // ---------- Journal ----------
+  function saveJournal({date,text}){
+    if(!date || !text || !text.trim()) return;
+    const existing = state.journal.find(j=>j.date===date);
+    if(existing) existing.text = text.trim();
+    else { state.journal.push({id:uid(),date,text:text.trim()}); addXp(10); }
+    scheduleSave(); renderAll();
+  }
+  function renderJournalView(){
+    const list = document.getElementById("journal-list"); list.innerHTML="";
+    const entries = [...state.journal].sort((a,b)=>b.date.localeCompare(a.date));
+    if(!entries.length) list.appendChild(emptyState("No entries yet."));
+    entries.forEach(j=>{
+      const el = document.createElement("div"); el.className="journal-entry";
+      const date = document.createElement("div"); date.className="journal-date"; date.textContent=j.date; el.appendChild(date);
+      const preview = document.createElement("div"); preview.className="journal-preview"; preview.textContent=j.text; el.appendChild(preview);
+      el.onclick = () => {
+        document.getElementById("journal-date").value = j.date;
+        document.getElementById("journal-text").value = j.text;
+        document.getElementById("journal-date-tag").textContent = j.date;
+        window.scrollTo({top:0,behavior:"smooth"});
+      };
+      list.appendChild(el);
+    });
+  }
+
+  // ---------- Nav ----------
+  function switchView(name){
+    document.querySelectorAll(".navitem").forEach(el=>el.classList.toggle("active", el.dataset.view===name));
+    document.querySelectorAll(".view").forEach(el=>el.classList.toggle("active", el.id==="view-"+name));
+    if(name==="health") renderHealthView();
+    if(name==="timer") renderTimerView();
+    if(name==="journal") renderJournalView();
+  }
+  function renderAll(){
+    renderVitals(); renderHeatmap(); renderOverview(); renderWeekView(); renderDraftView(); renderHabitsView();
+    const active = document.querySelector(".navitem.active");
+    if(active){
+      if(active.dataset.view==="health") renderHealthView();
+      if(active.dataset.view==="timer") renderTimerView();
+      if(active.dataset.view==="journal") renderJournalView();
+    }
+  }
+
+  // ---------- Wire up ----------
+  document.getElementById("navlist").addEventListener("click",(e)=>{ const it=e.target.closest(".navitem"); if(it) switchView(it.dataset.view); });
+
+  document.getElementById("w-add").onclick = () => { addWeekItem(document.getElementById("w-text").value, document.getElementById("w-date").value); document.getElementById("w-text").value=""; document.getElementById("w-date").value=""; };
+  document.getElementById("draft-add-goal").onclick = () => { addDraftGoal(tomorrowStr(), document.getElementById("draft-new-goal").value); document.getElementById("draft-new-goal").value=""; };
+  document.getElementById("h-add").onclick = () => { addHabit({name:document.getElementById("h-name").value, xpValue:document.getElementById("h-xp").value}); document.getElementById("h-name").value=""; };
+  document.getElementById("w-add-log").onclick = () => { addWeight({date:document.getElementById("w-date-log").value||todayStr(), value:document.getElementById("w-value").value}); document.getElementById("w-value").value=""; };
+  document.getElementById("g-add").onclick = () => { addGym({date:document.getElementById("g-date").value||todayStr(), type:document.getElementById("g-type").value, duration:document.getElementById("g-duration").value}); document.getElementById("g-duration").value=""; };
+  document.getElementById("cal-add").onclick = () => { addCalories({date:document.getElementById("cal-date").value||todayStr(), calories:document.getElementById("cal-value").value}); document.getElementById("cal-value").value=""; };
+  document.getElementById("journal-save").onclick = () => { saveJournal({date:document.getElementById("journal-date").value||todayStr(), text:document.getElementById("journal-text").value}); };
+
+  document.getElementById("w-date-log").value = todayStr();
+  document.getElementById("g-date").value = todayStr();
+  document.getElementById("cal-date").value = todayStr();
+  document.getElementById("journal-date").value = todayStr();
+  document.getElementById("datefoot").textContent = new Date().toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});
+
+  // ---------- PWA: service worker + install prompt + notifications ----------
+  let swRegistration = null;
+  if("serviceWorker" in navigator){
+    window.addEventListener("load", () => {
+      navigator.serviceWorker.register("./service-worker.js")
+        .then(reg => { swRegistration = reg; })
+        .catch(err => console.error("SW registration failed", err));
+    });
+  }
+
+  let deferredInstallPrompt = null;
+  window.addEventListener("beforeinstallprompt", (e) => {
+    e.preventDefault();
+    deferredInstallPrompt = e;
+    document.getElementById("install-btn").style.display = "block";
+  });
+  document.getElementById("install-btn").onclick = async () => {
+    if(!deferredInstallPrompt) return;
+    deferredInstallPrompt.prompt();
+    await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    document.getElementById("install-btn").style.display = "none";
+  };
+
+  // Recurring check: from 23:00 onward, every 5 min, fire a Draft reminder
+  // if tomorrow's Draft has fewer than 3 goals. Stops once 3+ are written.
+  // This only fires reliably while the app/tab is open or recently
+  // backgrounded — see the note in the Draft view for why a real
+  // guaranteed wake-up needs a server-push upgrade later.
+  function fireDraftReminder(){
+    const payload = { title:"Draft — write 3 goals", body:"Tomorrow's Draft still needs goals. Open Console to log them.", tag:"draft-reminder" };
+    if(!("Notification" in window) || Notification.permission!=="granted") return;
+    if(swRegistration){
+      navigator.serviceWorker.ready.then(reg => {
+        reg.active && reg.active.postMessage({ type:"SHOW_NOTIFICATION", payload });
+      });
+    } else {
+      new Notification(payload.title, { body: payload.body });
+    }
+  }
+  function draftReminderTick(){
+    const now = new Date();
+    if(now.getHours() < 23) return;
+    const tGoals = (state.draft[tomorrowStr()] || { goals: [] }).goals;
+    if(tGoals.length >= 3) return; // done, stop nagging
+    fireDraftReminder();
+  }
+  setInterval(draftReminderTick, 5 * 60 * 1000);
+
+  function updateNotifStatus(){
+    const el = document.getElementById("notif-status");
+    if(!("Notification" in window)){ el.textContent = "Notifications: not supported in this browser"; return; }
+    el.textContent = "Notifications: " + Notification.permission;
+  }
+  document.getElementById("notif-enable").onclick = async () => {
+    if(!("Notification" in window)) return;
+    await Notification.requestPermission();
+    updateNotifStatus();
+  };
+  document.getElementById("notif-test").onclick = () => {
+    if(!("Notification" in window) || Notification.permission!=="granted"){ updateNotifStatus(); return; }
+    if(swRegistration){
+      navigator.serviceWorker.ready.then(reg => {
+        reg.active && reg.active.postMessage({ type:"SHOW_NOTIFICATION", payload:{ title:"Draft reminder", body:"Write at least 3 goals for tomorrow.", tag:"draft-test" } });
+      });
+    } else {
+      new Notification("Draft reminder", { body:"Write at least 3 goals for tomorrow." });
+    }
+  };
+  updateNotifStatus();
+
+  switchView("overview");
+  load();
+})();
+</script>
+</body>
+</html>
